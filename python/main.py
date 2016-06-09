@@ -10,6 +10,7 @@ Twitter United Airlines Multivariate Sentiment Analysis Based on Support Vector 
 """
 print(__doc__)
 
+from types import *
 import numpy as np
 from sklearn.svm import SVR
 from sklearn.grid_search import GridSearchCV
@@ -23,16 +24,27 @@ import pandas as pd
 
 class Data(object):
 	def __init__(self, csvfilepath):
-		self.raw_table = pd.read_csv(csvfilepath)
+		self.feature()
+		self.dataType()
+		self.raw_table = pd.read_csv(csvfilepath, usecols=self.feature, skip_blank_lines=True, dtype=self.data_type, keep_default_na=True)
+		self.dropNaN()
 	def printRawTable(self):
 		print self.raw_table
-	# def feature(self):
-	# 	self.raw_feature = 
+	def feature(self):
+		self.feature = ['airline_sentiment', 'airline_sentiment_confidence', 'airline', 'text', 'tweet_created', 'tweet_location', 'user_timezone']
+	def dataType(self):
+		self.data_type = {'airline_sentiment': str, 'airline_sentiment_confidence': np.float64, 'airline': str, 'text': str, 'tweet_created': str, 'tweet_location': str, 'user_timezone': str}
+	def dropNaN(self):
+		self.raw_table = self.raw_table.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
+		self.raw_table = self.raw_table.dropna(axis=1, how='any', thresh=None, subset=None, inplace=False)
 
 csvfilepath = '../data/Tweets.csv'
 data = Data(csvfilepath)
 data.printRawTable()
-print data.raw_table['airline_sentiment']
+print type(data.raw_table)
+print data.raw_table.dtypes
+for key in data.raw_table:
+	print type(data.raw_table[key][6]), data.raw_table[key][6]
 # length_of_sequence = 100
 # data = Data(length_of_sequence)
 # data.length_of_unit = 5
