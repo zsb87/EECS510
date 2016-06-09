@@ -17,17 +17,25 @@ from sklearn.grid_search import GridSearchCV
 from sklearn import preprocessing
 from sklearn.metrics import mean_squared_error
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import SGDClassifier
+from sklearn.grid_search import GridSearchCV
+from sklearn.pipeline import Pipeline
 from math import sqrt
 import matplotlib.pyplot as plt
 import gensim, logging
 import pandas as pd
 
-class Data(object):
+
+class Data:
 	def __init__(self, csvfilepath):
 		self.feature()
 		self.dataType()
 		self.raw_table = pd.read_csv(csvfilepath, usecols=self.feature, skip_blank_lines=True, dtype=self.data_type, keep_default_na=True)
 		self.dropNaN()
+		self.setOutput()
+		self.doText2Vec()
 	def printRawTable(self):
 		print self.raw_table
 	def feature(self):
@@ -37,14 +45,38 @@ class Data(object):
 	def dropNaN(self):
 		self.raw_table = self.raw_table.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
 		self.raw_table = self.raw_table.dropna(axis=1, how='any', thresh=None, subset=None, inplace=False)
+	def setOutput(self):
+		airline_sentiment = np.array(self.raw_table['airline_sentiment'])
+		airline_sentiment_confidence = np.array(self.raw_table['airline_sentiment_confidence'])
+		length = len(airline_sentiment)
+		self.output = np.zeros(length)
+		for idx in range(length):
+			if airline_sentiment[idx] == 'neutral':
+				self.output[idx] = np.float64(0.5 * airline_sentiment_confidence[idx])
+			elif airline_sentiment[idx] == 'positive':
+				self.output[idx] = np.float64(1.0 * airline_sentiment_confidence[idx])
+			else:
+				self.output[idx] = np.float64(0.0)
+	def doText2Vec(self):
+		corpus = np.array(self.raw_table['text'])
+		self.vectorizer = TfidfVectorizer(min_df=1, stop_words='english', encoding='utf-8')
+		self.vectorizer.fit_transform(corpus)
+		# print self.vectorizer.toarray()
+	# def setInput(self):
 
-csvfilepath = '../data/Tweets.csv'
-data = Data(csvfilepath)
-data.printRawTable()
-print type(data.raw_table)
-print data.raw_table.dtypes
-for key in data.raw_table:
-	print type(data.raw_table[key][6]), data.raw_table[key][6]
+def main():
+	csvfilepath = '../data/Tweets.csv'
+	data = Data(csvfilepath)
+
+if __name__ == "__main__":
+    main()
+# data.printRawTable()
+# print type(data.raw_table)
+# print data.raw_table.dtypes
+# for key in data.raw_table:
+# 	for value in data.raw_table[key]:
+# 		print type(value), value
+# 	# print type(data.raw_table[key][2]), data.raw_table[key][2]
 # length_of_sequence = 100
 # data = Data(length_of_sequence)
 # data.length_of_unit = 5
