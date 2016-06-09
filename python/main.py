@@ -19,12 +19,14 @@ from sklearn.metrics import mean_squared_error
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import HashingVectorizer
+from sklearn.feature_extraction import DictVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.grid_search import GridSearchCV
 from sklearn.pipeline import Pipeline
 from math import sqrt
 import matplotlib.pyplot as plt
-import gensim, logging
+# import gensim, logging
 import pandas as pd
 
 
@@ -35,16 +37,25 @@ class Data:
 		self.raw_table = pd.read_csv(csvfilepath, usecols=self.feature, skip_blank_lines=True, dtype=self.data_type, keep_default_na=True)
 		self.dropNaN()
 		self.setOutput()
-		self.doText2Vec()
+		self.text2Vector()
+		self.airline2Vector()
+		self.tweetCreated2Vector()
+		self.tweetlocation2Vector()
+		self.userTimezone2Vector()
+		
 	def printRawTable(self):
 		print self.raw_table
+		return self.raw_table
+
 	def feature(self):
 		self.feature = ['airline_sentiment', 'airline_sentiment_confidence', 'airline', 'text', 'tweet_created', 'tweet_location', 'user_timezone']
+		return self.feature
 	def dataType(self):
 		self.data_type = {'airline_sentiment': str, 'airline_sentiment_confidence': np.float64, 'airline': str, 'text': str, 'tweet_created': str, 'tweet_location': str, 'user_timezone': str}
 	def dropNaN(self):
 		self.raw_table = self.raw_table.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
 		self.raw_table = self.raw_table.dropna(axis=1, how='any', thresh=None, subset=None, inplace=False)
+		return self.raw_table
 	def setOutput(self):
 		airline_sentiment = np.array(self.raw_table['airline_sentiment'])
 		airline_sentiment_confidence = np.array(self.raw_table['airline_sentiment_confidence'])
@@ -57,12 +68,62 @@ class Data:
 				self.output[idx] = np.float64(1.0 * airline_sentiment_confidence[idx])
 			else:
 				self.output[idx] = np.float64(0.0)
-	def doText2Vec(self):
-		corpus = np.array(self.raw_table['text'])
-		self.vectorizer = TfidfVectorizer(min_df=1, stop_words='english', encoding='utf-8')
-		self.vectorizer.fit_transform(corpus)
-		# print self.vectorizer.toarray()
+		pd.DataFrame(self.output).to_csv('../data/Output.csv', sep=',')
+		return self.output
+	def word2Vector(self, item, num_feature):
+		corpus = np.array(self.raw_table[item])
+		hashingVectorizer = HashingVectorizer(decode_error='ignore', n_features=num_feature, non_negative=False)
+		word2Vector = hashingVectorizer.fit_transform(corpus).toarray()
+		return word2Vector
+		# pd.DataFrame(word2Vector).to_csv('../data/result.csv', sep=',', encoding='utf-8',)
+		# print self.vector.ravel()
+		# print type(corpus[0])
+		# print corpus
+		# self.vectorizer = TfidfVectorizer(min_df=1, max_df=1.0,  stop_words='english', max_features=10, norm='l2', sublinear_tf=True)
+		# print self.vectorizer
+		# vec = self.vectorizer.fit_transform(corpus).toarray()
+		# print vec.toarray()
 	# def setInput(self):
+	# def airline2Vector(self):
+	# 	corpus = np.array(self.raw_table['airline'])
+	# 	self.dictVectorizer = DictVectorizer()
+	# 	self.airline2Vector = self.dictVectorizer.fit_transform(corpus).toarray()
+	# 	print self.airline2Vector
+	def airline2Vector(self):
+		corpus = np.array(self.raw_table['airline'])
+		set_corpus = set(corpus)
+		list_corpus = list(set_corpus)
+		# print array_corpus
+		length_row = len(corpus)
+		length_column = len(set_corpus)
+		self.airline2Vector = np.zeros((length_row, length_column))
+		# print corpus
+		for i in range(length_row):
+			for j in range(length_column):
+				if corpus[i] == list_corpus[j]:
+					self.airline2Vector[i][j] = 1.0
+		pd.DataFrame(self.airline2Vector).to_csv('../data/Airline2Vector.csv', sep=',')
+		return self.airline2Vector
+
+	def text2Vector(self):
+		self.text2Vector = self.word2Vector('text', 30)
+		pd.DataFrame(self.text2Vector).to_csv('../data/Text2Vector.csv', sep=',')
+		return self.text2Vector
+
+	def tweetCreated2Vector(self):
+		self.tweetCreated2Vector = self.word2Vector('tweet_created', 10)
+		pd.DataFrame(self.tweetCreated2Vector).to_csv('../data/TweetCreated2Vector.csv', sep=',')
+		return self.tweetCreated2Vector
+
+	def tweetlocation2Vector(self):
+		self.tweetlocation2Vector = self.word2Vector('tweet_location', 10)
+		pd.DataFrame(self.tweetlocation2Vector).to_csv('../data/TweetLocation2Vector.csv', sep=',')
+		return self.tweetlocation2Vector
+
+	def userTimezone2Vector(self):
+		self.userTimezone2Vector = self.word2Vector('user_timezone', 10)
+		pd.DataFrame(self.userTimezone2Vector).to_csv('../data/UserTimezone2Vector.csv', sep=',')
+		return self.userTimezone2Vector
 
 def main():
 	csvfilepath = '../data/Tweets.csv'
