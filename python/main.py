@@ -37,12 +37,12 @@ class Data:
 		self.raw_table = pd.read_csv(csvfilepath, usecols=self.feature, skip_blank_lines=True, dtype=self.data_type, keep_default_na=True)
 		self.dropNaN()
 		self.setOutput()
-		self.text2Vector()
-		self.airline2Vector()
-		self.tweetCreated2Vector()
-		self.tweetlocation2Vector()
-		self.userTimezone2Vector()
-		
+		self.setInput()
+		self.preprocess()
+		self.svr_linear()
+		self.svr_rbf()
+		self.svr_sigmoid()
+
 	def printRawTable(self):
 		print self.raw_table
 		return self.raw_table
@@ -70,6 +70,68 @@ class Data:
 				self.output[idx] = np.float64(0.0)
 		pd.DataFrame(self.output).to_csv('../data/Output.csv', sep=',')
 		return self.output
+
+	def setInput(self):
+		self.text2Vector()
+		self.airline2Vector()
+		self.tweetCreated2Vector()
+		self.tweetlocation2Vector()
+		self.userTimezone2Vector()
+		self.input = np.column_stack((self.airline2Vector, self.text2Vector, self.tweetCreated2Vector, self.tweetlocation2Vector, self.userTimezone2Vector))
+		pd.DataFrame(self.input).to_csv('../data/Input.csv', sep=',')
+		return self.input
+
+	def preprocess(self):
+		self.length_of_prediction_sequence = int(0.2 * len(self.input))
+		self.input_scaler = preprocessing.StandardScaler()
+		self.input_transform = self.input_scaler.fit_transform(self.input)
+		self.output_scaler = preprocessing.StandardScaler()
+		self.output_transform = self.output_scaler.fit_transform(self.output)
+		self.input_transform_train = self.input_transform[:(self.length_of_prediction_sequence)]
+		self.output_transform_train =  self.output_transform[:(self.length_of_prediction_sequence)]
+		self.input_transform_test = self.input_transform[(self.length_of_prediction_sequence):]
+		self.output_test = self.output[(self.length_of_prediction_sequence):]
+		# print len(self.input_transform_train)
+
+	def svr_linear(self):
+		self.svr_linear = GridSearchCV(SVR(kernel='linear', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
+		self.svr_linear.fit(self.input_transform_train, self.output_transform_train)
+		self.output_transform_predict_linear = self.svr_linear.predict(self.input_transform_test)
+		self.output_predict_linear = self.output_scaler.inverse_transform(self.output_transform_predict_linear.reshape((self.length_of_prediction_sequence, 1)))
+		self.square_root_of_mean_squared_error_linear = sqrt(mean_squared_error(self.output_test, self.output_predict_linear))
+
+	def svr_rbf(self):
+		self.svr_rbf = GridSearchCV(SVR(kernel='rbf', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
+		self.svr_rbf.fit(self.input_transform_train, self.output_transform_train)
+		self.output_transform_predict_rbf = self.svr_rbf.predict(self.input_transform_test)
+		self.output_predict_rbf = self.output_scaler.inverse_transform(self.output_transform_predict_rbf.reshape((self.length_of_prediction_sequence, 1)))
+		self.square_root_of_mean_squared_error_rbf = sqrt(mean_squared_error(self.output_test, self.output_predict_rbf))
+		plt.figure()
+		x = np.arange(0, self.length_of_prediction_sequence)
+		plt.plot(x, self.output_test, 'ro-', linewidth=2.0, label='Actual')
+		plt.plot(x, self.output_predict_linear, 'bo-', linewidth=2.0, label='Predicted')
+		plt.title('linear-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_linear)
+		plt.legend()
+		plt.grid(True)
+		plt.savefig('linear-SVR.eps', format='eps', dpi=2000)
+		plt.show()
+
+	def svr_sigmoid(self):
+		self.svr_sigmoid = GridSearchCV(SVR(kernel='sigmoid', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
+		self.svr_sigmoid.fit(self.input_transform_train, self.output_transform_train)
+		self.output_transform_predict_sigmoid = self.svr_sigmoid.predict(self.input_transform_test)
+		self.output_predict_sigmoid = self.output_scaler.inverse_transform(self.output_transform_predict_sigmoid.reshape((self.length_of_prediction_sequence, 1)))
+		self.square_root_of_mean_squared_error_sigmoid = sqrt(mean_squared_error(self.output_test, self.output_predict_sigmoid))
+		plt.figure()
+		x = np.arange(0, self.length_of_prediction_sequence)
+		plt.plot(x, self.output_test, 'ro-', linewidth=2.0, label='Actual')
+		plt.plot(x, self.output_predict_rbf, 'bo-', linewidth=2.0, label='Predicted')
+		plt.title('rbf-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_rbf)
+		plt.legend()
+		plt.grid(True)
+		plt.savefig('rbf-SVR.eps', format='eps', dpi=2000)
+		plt.show()
+
 	def word2Vector(self, item, num_feature):
 		corpus = np.array(self.raw_table[item])
 		hashingVectorizer = HashingVectorizer(decode_error='ignore', n_features=num_feature, non_negative=False)
@@ -125,80 +187,81 @@ class Data:
 		pd.DataFrame(self.userTimezone2Vector).to_csv('../data/UserTimezone2Vector.csv', sep=',')
 		return self.userTimezone2Vector
 
+
 def main():
 	csvfilepath = '../data/Tweets.csv'
 	data = Data(csvfilepath)
 
 if __name__ == "__main__":
     main()
-# data.printRawTable()
-# print type(data.raw_table)
-# print data.raw_table.dtypes
-# for key in data.raw_table:
-# 	for value in data.raw_table[key]:
+# self.printRawTable()
+# print type(self.raw_table)
+# print self.raw_table.dtypes
+# for key in self.raw_table:
+# 	for value in self.raw_table[key]:
 # 		print type(value), value
-# 	# print type(data.raw_table[key][2]), data.raw_table[key][2]
+# 	# print type(self.raw_table[key][2]), self.raw_table[key][2]
 # length_of_sequence = 100
 # data = Data(length_of_sequence)
-# data.length_of_unit = 5
-# data.input = np.zeros((data.length_of_sequence - data.length_of_unit, data.length_of_unit))
-# data.output = np.zeros((data.length_of_sequence - data.length_of_unit, 1))
-# for i in range(0, data.length_of_sequence - data.length_of_unit):
-# 	data.output[i] = data.sequence[data.length_of_unit + i]
-# 	for j in range(0, data.length_of_unit):
-# 		data.input[i][j] = data.sequence[i + j]
+# self.length_of_unit = 5
+# self.input = np.zeros((self.length_of_sequence - self.length_of_unit, self.length_of_unit))
+# self.output = np.zeros((self.length_of_sequence - self.length_of_unit, 1))
+# for i in range(0, self.length_of_sequence - self.length_of_unit):
+# 	self.output[i] = self.sequence[self.length_of_unit + i]
+# 	for j in range(0, self.length_of_unit):
+# 		self.input[i][j] = self.sequence[i + j]
 
-# data.length_of_prediction_sequence = 20
-# data.input_scaler = preprocessing.StandardScaler()
-# data.input_transform = data.input_scaler.fit_transform(data.input)
-# data.output_scaler = preprocessing.StandardScaler()
-# data.output_transform = data.output_scaler.fit_transform(data.output)
-# data.input_transform_train = data.input_transform[:(data.length_of_sequence - data.length_of_unit - data.length_of_prediction_sequence)]
-# data.output_transform_train =  data.output_transform[:(data.length_of_sequence - data.length_of_unit - data.length_of_prediction_sequence)].ravel()
-# data.input_transform_test = data.input_transform[(data.length_of_sequence - data.length_of_unit - data.length_of_prediction_sequence):]
-# data.output_test = data.output[(data.length_of_sequence - data.length_of_unit - data.length_of_prediction_sequence):].ravel()
+# self.length_of_prediction_sequence = 20
+# self.input_scaler = preprocessing.StandardScaler()
+# self.input_transform = self.input_scaler.fit_transform(self.input)
+# self.output_scaler = preprocessing.StandardScaler()
+# self.output_transform = self.output_scaler.fit_transform(self.output)
+# self.input_transform_train = self.input_transform[:(self.length_of_sequence - self.length_of_unit - self.length_of_prediction_sequence)]
+# self.output_transform_train =  self.output_transform[:(self.length_of_sequence - self.length_of_unit - self.length_of_prediction_sequence)].ravel()
+# self.input_transform_test = self.input_transform[(self.length_of_sequence - self.length_of_unit - self.length_of_prediction_sequence):]
+# self.output_test = self.output[(self.length_of_sequence - self.length_of_unit - self.length_of_prediction_sequence):].ravel()
 
 # svr_linear = GridSearchCV(SVR(kernel='linear', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
-# svr_linear.fit(data.input_transform_train, data.output_transform_train)
-# data.output_transform_predict_linear = svr_linear.predict(data.input_transform_test)
-# data.output_predict_linear = data.output_scaler.inverse_transform(data.output_transform_predict_linear.reshape((data.length_of_prediction_sequence, 1)))
-# data.square_root_of_mean_squared_error_linear = sqrt(mean_squared_error(data.output_test, data.output_predict_linear))
+# svr_linear.fit(self.input_transform_train, self.output_transform_train)
+# self.output_transform_predict_linear = svr_linear.predict(self.input_transform_test)
+# self.output_predict_linear = self.output_scaler.inverse_transform(self.output_transform_predict_linear.reshape((self.length_of_prediction_sequence, 1)))
+# self.square_root_of_mean_squared_error_linear = sqrt(mean_squared_error(self.output_test, self.output_predict_linear))
 
-# svr_rbf = GridSearchCV(SVR(kernel='rbf', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
-# svr_rbf.fit(data.input_transform_train, data.output_transform_train)
-# data.output_transform_predict_rbf = svr_rbf.predict(data.input_transform_test)
-# data.output_predict_rbf = data.output_scaler.inverse_transform(data.output_transform_predict_rbf.reshape((data.length_of_prediction_sequence, 1)))
-# data.square_root_of_mean_squared_error_rbf = sqrt(mean_squared_error(data.output_test, data.output_predict_rbf))
+# self.svr_rbf = GridSearchCV(SVR(kernel='rbf', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
+# self.svr_rbf.fit(self.input_transform_train, self.output_transform_train)
+# self.output_transform_predict_rbf = self.svr_rbf.predict(self.input_transform_test)
+# self.output_predict_rbf = self.output_scaler.inverse_transform(self.output_transform_predict_rbf.reshape((self.length_of_prediction_sequence, 1)))
+# self.square_root_of_mean_squared_error_rbf = sqrt(mean_squared_error(self.output_test, self.output_predict_rbf))
 
-# svr_sigmoid = GridSearchCV(SVR(kernel='sigmoid', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
-# svr_sigmoid.fit(data.input_transform_train, data.output_transform_train)
-# data.output_transform_predict_sigmoid = svr_sigmoid.predict(data.input_transform_test)
-# data.output_predict_sigmoid = data.output_scaler.inverse_transform(data.output_transform_predict_sigmoid.reshape((data.length_of_prediction_sequence, 1)))
-# data.square_root_of_mean_squared_error_sigmoid = sqrt(mean_squared_error(data.output_test, data.output_predict_sigmoid))
+# self.svr_sigmoid = GridSearchCV(SVR(kernel='sigmoid', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
+# self.svr_sigmoid.fit(self.input_transform_train, self.output_transform_train)
+# self.output_transform_predict_sigmoid = self.svr_sigmoid.predict(self.input_transform_test)
+# self.output_predict_sigmoid = self.output_scaler.inverse_transform(self.output_transform_predict_sigmoid.reshape((self.length_of_prediction_sequence, 1)))
+# self.square_root_of_mean_squared_error_sigmoid = sqrt(mean_squared_error(self.output_test, self.output_predict_sigmoid))
 
 # plt.figure(1)
-# x = np.arange(0, data.length_of_prediction_sequence)
-# plt.plot(x, data.output_test, 'ro-', linewidth=2.0, label='Actual')
-# plt.plot(x, data.output_predict_linear, 'bo-', linewidth=2.0, label='Predicted')
-# plt.title('linear-SVR: RMSE = %.3f' %data.square_root_of_mean_squared_error_linear)
+# x = np.arange(0, self.length_of_prediction_sequence)
+# plt.plot(x, self.output_test, 'ro-', linewidth=2.0, label='Actual')
+# plt.plot(x, self.output_predict_linear, 'bo-', linewidth=2.0, label='Predicted')
+# plt.title('linear-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_linear)
 # plt.legend()
 # plt.grid(True)
 # plt.show()
 
 # plt.figure(2)
-# x = np.arange(0, data.length_of_prediction_sequence)
-# plt.plot(x, data.output_test, 'ro-', linewidth=2.0, label='Actual')
-# plt.plot(x, data.output_predict_rbf, 'bo-', linewidth=2.0, label='Predicted')
-# plt.title('rbf-SVR: RMSE = %.3f' %data.square_root_of_mean_squared_error_rbf)
+# x = np.arange(0, self.length_of_prediction_sequence)
+# plt.plot(x, self.output_test, 'ro-', linewidth=2.0, label='Actual')
+# plt.plot(x, self.output_predict_rbf, 'bo-', linewidth=2.0, label='Predicted')
+# plt.title('rbf-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_rbf)
 # plt.legend()
 # plt.grid(True)
 # plt.show()
 
 # plt.figure(3)
-# x = np.arange(0, data.length_of_prediction_sequence)
-# plt.plot(x, data.output_test, 'ro-', linewidth=2.0, label='Actual')
-# plt.plot(x, data.output_predict_sigmoid, 'bo-', linewidth=2.0, label='Predicted')
-# plt.title('sigmoid-SVR: RMSE = %.3f' %data.square_root_of_mean_squared_error_sigmoid)
+# x = np.arange(0, self.length_of_prediction_sequence)
+# plt.plot(x, self.output_test, 'ro-', linewidth=2.0, label='Actual')
+# plt.plot(x, self.output_predict_sigmoid, 'bo-', linewidth=2.0, label='Predicted')
+# plt.title('sigmoid-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_sigmoid)
 # plt.legend()
 # plt.grid(True)
 # plt.show()
