@@ -45,10 +45,12 @@ class Data:
 		self.setOutput()
 		self.setInput()
 		self.preprocess()
-		self.svr_linear()
-		self.svr_poly()
-		self.svr_rbf()
-		self.svr_sigmoid()
+		self.kernel_set = set({'linear', 'poly', 'rbf', 'sigmoid'})
+		self.svr()
+		# self.svr_linear()
+		# self.svr_poly()
+		# self.svr_rbf()
+		# self.svr_sigmoid()
 
 	def printRawTable(self):
 		print self.raw_table
@@ -116,79 +118,23 @@ class Data:
 		self.output_test = self.output[(self.length_of_sequence - self.length_of_prediction_sequence):]
 		# print len(self.input_transform_test)
 		# print len(self.input_transform_train)
-
-	def svr_linear(self):
-		# self.svr_linear = GridSearchCV(SVR(kernel='linear', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
-		self.svr_linear = SVR(kernel='linear', gamma=0.1)
-		self.svr_linear.fit(self.input_transform_train, self.output_transform_train)
-		self.output_transform_predict_linear = self.svr_linear.predict(self.input_transform_test)
-		self.output_predict_linear = self.output_scaler.inverse_transform(self.output_transform_predict_linear.reshape((self.length_of_prediction_sequence, 1)))
-		self.square_root_of_mean_squared_error_linear = sqrt(mean_squared_error(self.output_test, self.output_predict_linear))
-		plt.figure()
-		x = np.arange(0, self.length_of_prediction_sequence)
-		plt.plot(x, self.output_test, 'ro-', label='Actual')
-		plt.plot(x, self.output_predict_linear, 'bo-', label='Predicted')
-		plt.title('linear-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_linear)
-		plt.legend()
-		plt.grid(True)
-		plt.savefig('../figure/linear-SVR.eps', format='eps', dpi=1000)
-		plt.savefig('../figure/linear-SVR.png', format='png', dpi=1000)
-		# plt.show()
-
-	def svr_poly(self):
-		# self.svr_linear = GridSearchCV(SVR(kernel='linear', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
-		self.svr_poly = SVR(kernel='poly', gamma=0.1)
-		self.svr_poly.fit(self.input_transform_train, self.output_transform_train)
-		self.output_transform_predict_poly = self.svr_poly.predict(self.input_transform_test)
-		self.output_predict_poly = self.output_scaler.inverse_transform(self.output_transform_predict_poly.reshape((self.length_of_prediction_sequence, 1)))
-		self.square_root_of_mean_squared_error_poly = sqrt(mean_squared_error(self.output_test, self.output_predict_poly))
-		plt.figure()
-		x = np.arange(0, self.length_of_prediction_sequence)
-		plt.plot(x, self.output_test, 'ro-', label='Actual')
-		plt.plot(x, self.output_predict_poly, 'bo-', label='Predicted')
-		plt.title('poly-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_poly)
-		plt.legend()
-		plt.grid(True)
-		plt.savefig('../figure/poly-SVR.eps', format='eps', dpi=1000)
-		plt.savefig('../figure/poly-SVR.png', format='png', dpi=1000)
-		# plt.show()	
-
-
-	def svr_rbf(self):
-		# self.svr_rbf = GridSearchCV(SVR(kernel='rbf', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
-		self.svr_rbf = SVR(kernel='rbf', gamma=0.1)
-		self.svr_rbf.fit(self.input_transform_train, self.output_transform_train)
-		self.output_transform_predict_rbf = self.svr_rbf.predict(self.input_transform_test)
-		self.output_predict_rbf = self.output_scaler.inverse_transform(self.output_transform_predict_rbf.reshape((self.length_of_prediction_sequence, 1)))
-		self.square_root_of_mean_squared_error_rbf = sqrt(mean_squared_error(self.output_test, self.output_predict_rbf))
-		plt.figure()
-		x = np.arange(0, self.length_of_prediction_sequence)
-		plt.plot(x, self.output_test, 'ro-', label='Actual')
-		plt.plot(x, self.output_predict_rbf, 'bo-', label='Predicted')
-		plt.title('rbf-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_rbf)
-		plt.legend()
-		plt.grid(True)
-		plt.savefig('../figure/rbf-SVR.eps', format='eps', dpi=1000)
-		plt.savefig('../figure/rbf-SVR.png', format='png', dpi=1000)
-		# plt.show()
-
-	def svr_sigmoid(self):
-		# self.svr_sigmoid = GridSearchCV(SVR(kernel='sigmoid', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
-		self.svr_sigmoid = SVR(kernel='sigmoid', gamma=0.1)
-		self.svr_sigmoid.fit(self.input_transform_train, self.output_transform_train)
-		self.output_transform_predict_sigmoid = self.svr_sigmoid.predict(self.input_transform_test)
-		self.output_predict_sigmoid = self.output_scaler.inverse_transform(self.output_transform_predict_sigmoid.reshape((self.length_of_prediction_sequence, 1)))
-		self.square_root_of_mean_squared_error_sigmoid = sqrt(mean_squared_error(self.output_test, self.output_predict_sigmoid))
-		plt.figure()
-		x = np.arange(0, self.length_of_prediction_sequence)
-		plt.plot(x, self.output_test, 'ro-', label='Actual')
-		plt.plot(x, self.output_predict_sigmoid, 'bo-', label='Predicted')
-		plt.title('sigmoid-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_sigmoid)
-		plt.legend()
-		plt.grid(True)
-		plt.savefig('../figure/sigmoid-SVR.eps', format='eps', dpi=1000)
-		plt.savefig('../figure/sigmoid-SVR.png', format='png', dpi=1000)
-		# plt.show()
+	def svr(self):
+		for k in self.kernel_set:
+			self.svr = SVR(kernel=k, gamma=0.1)
+			self.svr.fit(self.input_transform_train, self.output_transform_train)
+			self.output_transform_predict = self.svr.predict(self.input_transform_test)
+			self.output_predict = self.output_scaler.inverse_transform(self.output_transform_predict.reshape((self.length_of_prediction_sequence, 1)))
+			self.square_root_of_mean_squared_error = sqrt(mean_squared_error(self.output_test, self.output_predict))
+			plt.figure()
+			x = np.arange(0, self.length_of_prediction_sequence)
+			plt.plot(x, self.output_test, 'ro-', label='Actual')
+			plt.plot(x, self.output_predict, 'bo-', label='Predicted')
+			plt.title('%s-SVR: RMSE = %.3f' %(k, self.square_root_of_mean_squared_error))
+			plt.legend()
+			plt.grid(True)
+			plt.savefig('../figure/%s-SVR.eps' %k, format='eps', dpi=3000)
+			plt.savefig('../figure/%s-SVR.png' %k, format='png', dpi=3000)
+			# plt.show()
 
 	def word2Vector(self, item, num_feature):
 		corpus = np.array(self.raw_table[item])
@@ -203,12 +149,7 @@ class Data:
 		# print self.vectorizer
 		# vec = self.vectorizer.fit_transform(corpus).toarray()
 		# print vec.toarray()
-	# def setInput(self):
-	# def airline2Vector(self):
-	# 	corpus = np.array(self.raw_table['airline'])
-	# 	self.dictVectorizer = DictVectorizer()
-	# 	self.airline2Vector = self.dictVectorizer.fit_transform(corpus).toarray()
-	# 	print self.airline2Vector
+		
 	def airline2Vector(self):
 		corpus = np.array(self.raw_table['airline'])
 		set_corpus = set(corpus)
