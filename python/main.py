@@ -196,7 +196,6 @@ class Data:
 		pd.DataFrame(self.userTimezone2Vector).to_csv('../data/UserTimezone2Vector.csv', sep=',')
 		return self.userTimezone2Vector
 
-
 def main():
 	csvfilepath = '../data/Tweets.csv'
 	data = Data(csvfilepath)
