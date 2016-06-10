@@ -94,18 +94,11 @@ class Data:
 		# print len(self.input_transform_train)
 
 	def svr_linear(self):
-		self.svr_linear = GridSearchCV(SVR(kernel='linear', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
+		self.svr_linear = GridSearchCV(SVR(kernel='linear', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
 		self.svr_linear.fit(self.input_transform_train, self.output_transform_train)
 		self.output_transform_predict_linear = self.svr_linear.predict(self.input_transform_test)
 		self.output_predict_linear = self.output_scaler.inverse_transform(self.output_transform_predict_linear.reshape((self.length_of_prediction_sequence, 1)))
 		self.square_root_of_mean_squared_error_linear = sqrt(mean_squared_error(self.output_test, self.output_predict_linear))
-
-	def svr_rbf(self):
-		self.svr_rbf = GridSearchCV(SVR(kernel='rbf', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
-		self.svr_rbf.fit(self.input_transform_train, self.output_transform_train)
-		self.output_transform_predict_rbf = self.svr_rbf.predict(self.input_transform_test)
-		self.output_predict_rbf = self.output_scaler.inverse_transform(self.output_transform_predict_rbf.reshape((self.length_of_prediction_sequence, 1)))
-		self.square_root_of_mean_squared_error_rbf = sqrt(mean_squared_error(self.output_test, self.output_predict_rbf))
 		plt.figure()
 		x = np.arange(0, self.length_of_prediction_sequence)
 		plt.plot(x, self.output_test, 'ro-', linewidth=2.0, label='Actual')
@@ -113,15 +106,15 @@ class Data:
 		plt.title('linear-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_linear)
 		plt.legend()
 		plt.grid(True)
-		plt.savefig('linear-SVR.eps', format='eps', dpi=2000)
-		plt.show()
+		plt.savefig('../figure/linear-SVR.eps', format='eps', dpi=2000)
+		plt.show()		
 
-	def svr_sigmoid(self):
-		self.svr_sigmoid = GridSearchCV(SVR(kernel='sigmoid', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=40, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=40, base=2.0)})
-		self.svr_sigmoid.fit(self.input_transform_train, self.output_transform_train)
-		self.output_transform_predict_sigmoid = self.svr_sigmoid.predict(self.input_transform_test)
-		self.output_predict_sigmoid = self.output_scaler.inverse_transform(self.output_transform_predict_sigmoid.reshape((self.length_of_prediction_sequence, 1)))
-		self.square_root_of_mean_squared_error_sigmoid = sqrt(mean_squared_error(self.output_test, self.output_predict_sigmoid))
+	def svr_rbf(self):
+		self.svr_rbf = GridSearchCV(SVR(kernel='rbf', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
+		self.svr_rbf.fit(self.input_transform_train, self.output_transform_train)
+		self.output_transform_predict_rbf = self.svr_rbf.predict(self.input_transform_test)
+		self.output_predict_rbf = self.output_scaler.inverse_transform(self.output_transform_predict_rbf.reshape((self.length_of_prediction_sequence, 1)))
+		self.square_root_of_mean_squared_error_rbf = sqrt(mean_squared_error(self.output_test, self.output_predict_rbf))
 		plt.figure()
 		x = np.arange(0, self.length_of_prediction_sequence)
 		plt.plot(x, self.output_test, 'ro-', linewidth=2.0, label='Actual')
@@ -129,7 +122,23 @@ class Data:
 		plt.title('rbf-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_rbf)
 		plt.legend()
 		plt.grid(True)
-		plt.savefig('rbf-SVR.eps', format='eps', dpi=2000)
+		plt.savefig('../figure/rbf-SVR.eps', format='eps', dpi=2000)
+		plt.show()
+
+	def svr_sigmoid(self):
+		self.svr_sigmoid = GridSearchCV(SVR(kernel='sigmoid', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
+		self.svr_sigmoid.fit(self.input_transform_train, self.output_transform_train)
+		self.output_transform_predict_sigmoid = self.svr_sigmoid.predict(self.input_transform_test)
+		self.output_predict_sigmoid = self.output_scaler.inverse_transform(self.output_transform_predict_sigmoid.reshape((self.length_of_prediction_sequence, 1)))
+		self.square_root_of_mean_squared_error_sigmoid = sqrt(mean_squared_error(self.output_test, self.output_predict_sigmoid))
+		plt.figure()
+		x = np.arange(0, self.length_of_prediction_sequence)
+		plt.plot(x, self.output_test, 'ro-', linewidth=2.0, label='Actual')
+		plt.plot(x, self.output_predict_sigmoid, 'bo-', linewidth=2.0, label='Predicted')
+		plt.title('sigmoid-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_sigmoid)
+		plt.legend()
+		plt.grid(True)
+		plt.savefig('../figure/sigmoid-SVR.eps', format='eps', dpi=2000)
 		plt.show()
 
 	def word2Vector(self, item, num_feature):
