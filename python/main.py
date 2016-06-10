@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-=======================================================================================
-Twitter United Airlines Multivariate Sentiment Analysis Based on Support Vector Machine
-=======================================================================================
+================================================================================================
+Twitter United Airlines Sentiment Analysis Based on Support Vector Regression and Word to Vector
+================================================================================================
 @author: Yuanhui Yang
 @email: yuanhui.yang@u.northwestern.edu
-=======================================================================================
+================================================================================================
 """
 print(__doc__)
 
@@ -34,12 +34,19 @@ class Data:
 	def __init__(self, csvfilepath):
 		self.feature()
 		self.dataType()
-		self.raw_table = pd.read_csv(csvfilepath, usecols=self.feature, skip_blank_lines=True, dtype=self.data_type, keep_default_na=True)
+		self.raw_table = pd.read_csv(
+			csvfilepath, 
+			usecols=self.feature, 
+			skip_blank_lines=True, 
+			dtype=self.data_type, 
+			keep_default_na=True
+			)
 		self.dropNaN()
 		self.setOutput()
 		self.setInput()
 		self.preprocess()
 		self.svr_linear()
+		self.svr_poly()
 		self.svr_rbf()
 		self.svr_sigmoid()
 
@@ -48,10 +55,26 @@ class Data:
 		return self.raw_table
 
 	def feature(self):
-		self.feature = ['airline_sentiment', 'airline_sentiment_confidence', 'airline', 'text', 'tweet_created', 'tweet_location', 'user_timezone']
+		self.feature = [
+		'airline_sentiment', 
+		'airline_sentiment_confidence', 
+		'airline', 
+		'text', 
+		'tweet_created', 
+		'tweet_location', 
+		'user_timezone'
+		]
 		return self.feature
 	def dataType(self):
-		self.data_type = {'airline_sentiment': str, 'airline_sentiment_confidence': np.float64, 'airline': str, 'text': str, 'tweet_created': str, 'tweet_location': str, 'user_timezone': str}
+		self.data_type = {
+		'airline_sentiment': str, 
+		'airline_sentiment_confidence': np.float64, 
+		'airline': str, 
+		'text': str, 
+		'tweet_created': str, 
+		'tweet_location': str, 
+		'user_timezone': str
+		}
 	def dropNaN(self):
 		self.raw_table = self.raw_table.dropna(axis=0, how='any', thresh=None, subset=None, inplace=False)
 		self.raw_table = self.raw_table.dropna(axis=1, how='any', thresh=None, subset=None, inplace=False)
@@ -95,8 +118,8 @@ class Data:
 		# print len(self.input_transform_train)
 
 	def svr_linear(self):
-		self.svr_linear = GridSearchCV(SVR(kernel='linear', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
-		# self.svr_linear = SVR(kernel='linear', gamma=0.1)
+		# self.svr_linear = GridSearchCV(SVR(kernel='linear', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
+		self.svr_linear = SVR(kernel='linear', gamma=0.1)
 		self.svr_linear.fit(self.input_transform_train, self.output_transform_train)
 		self.output_transform_predict_linear = self.svr_linear.predict(self.input_transform_test)
 		self.output_predict_linear = self.output_scaler.inverse_transform(self.output_transform_predict_linear.reshape((self.length_of_prediction_sequence, 1)))
@@ -112,9 +135,28 @@ class Data:
 		plt.savefig('../figure/linear-SVR.png', format='png', dpi=1000)
 		# plt.show()
 
+	def svr_poly(self):
+		# self.svr_linear = GridSearchCV(SVR(kernel='linear', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
+		self.svr_poly = SVR(kernel='poly', gamma=0.1)
+		self.svr_poly.fit(self.input_transform_train, self.output_transform_train)
+		self.output_transform_predict_poly = self.svr_poly.predict(self.input_transform_test)
+		self.output_predict_poly = self.output_scaler.inverse_transform(self.output_transform_predict_poly.reshape((self.length_of_prediction_sequence, 1)))
+		self.square_root_of_mean_squared_error_poly = sqrt(mean_squared_error(self.output_test, self.output_predict_poly))
+		plt.figure()
+		x = np.arange(0, self.length_of_prediction_sequence)
+		plt.plot(x, self.output_test, 'ro-', label='Actual')
+		plt.plot(x, self.output_predict_poly, 'bo-', label='Predicted')
+		plt.title('poly-SVR: RMSE = %.3f' %self.square_root_of_mean_squared_error_poly)
+		plt.legend()
+		plt.grid(True)
+		plt.savefig('../figure/poly-SVR.eps', format='eps', dpi=1000)
+		plt.savefig('../figure/poly-SVR.png', format='png', dpi=1000)
+		# plt.show()	
+
+
 	def svr_rbf(self):
-		self.svr_rbf = GridSearchCV(SVR(kernel='rbf', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
-		# self.svr_rbf = SVR(kernel='rbf', gamma=0.1)
+		# self.svr_rbf = GridSearchCV(SVR(kernel='rbf', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
+		self.svr_rbf = SVR(kernel='rbf', gamma=0.1)
 		self.svr_rbf.fit(self.input_transform_train, self.output_transform_train)
 		self.output_transform_predict_rbf = self.svr_rbf.predict(self.input_transform_test)
 		self.output_predict_rbf = self.output_scaler.inverse_transform(self.output_transform_predict_rbf.reshape((self.length_of_prediction_sequence, 1)))
@@ -131,8 +173,8 @@ class Data:
 		# plt.show()
 
 	def svr_sigmoid(self):
-		self.svr_sigmoid = GridSearchCV(SVR(kernel='sigmoid', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
-		# self.svr_sigmoid = SVR(kernel='sigmoid', gamma=0.1)
+		# self.svr_sigmoid = GridSearchCV(SVR(kernel='sigmoid', gamma=0.1), cv=10, param_grid={'C': np.logspace(-10.0, 10.0, num=5, base=2.0), 'gamma': np.logspace(-10.0, 10.0, num=5, base=2.0)})
+		self.svr_sigmoid = SVR(kernel='sigmoid', gamma=0.1)
 		self.svr_sigmoid.fit(self.input_transform_train, self.output_transform_train)
 		self.output_transform_predict_sigmoid = self.svr_sigmoid.predict(self.input_transform_test)
 		self.output_predict_sigmoid = self.output_scaler.inverse_transform(self.output_transform_predict_sigmoid.reshape((self.length_of_prediction_sequence, 1)))
