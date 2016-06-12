@@ -28,6 +28,7 @@ from math import sqrt
 import matplotlib.pyplot as plt
 # import gensim, logging
 import pandas as pd
+import Tkinter as tk
 
 
 class Data:
@@ -101,11 +102,11 @@ class Data:
 		self.output = np.zeros(self.length_of_sequence)
 		for idx in range(self.length_of_sequence):
 			if airline_sentiment[idx] == 'neutral':
-				self.output[idx] = np.float64(0.5 * airline_sentiment_confidence[idx])
+				self.output[idx] = np.float64(60.0 * airline_sentiment_confidence[idx])
 			elif airline_sentiment[idx] == 'positive':
-				self.output[idx] = np.float64(1.0 * airline_sentiment_confidence[idx])
+				self.output[idx] = np.float64(100.0 * airline_sentiment_confidence[idx])
 			else:
-				self.output[idx] = np.float64(0.0)
+				self.output[idx] = np.float64(20.0 * airline_sentiment_confidence[idx])
 		pd.DataFrame(self.output).to_csv('../data/Output.csv', sep=',')
 		return self.output
 
@@ -149,7 +150,9 @@ class Data:
 	def svr(self):
 		for k in self.kernel_set:
 			self.svr = SVR(kernel=k, gamma=0.1)
-			self.svr.fit(self.input_transform_train, self.output_transform_train)
+			self.svr.fit(
+				self.input_transform_train, 
+				self.output_transform_train)
 			self.output_transform_predict = self.svr.predict(
 				self.input_transform_test
 				)
@@ -255,9 +258,28 @@ class Data:
 			)
 		return self.userTimezone2Vector
 
+# class Application(Frame):
+# 	def __init__(self):
+# 		self.createWidgets()
+
+# 	def createWidgets(self):
+# 		self.QUIT = Button(self)
+# 		self.QUIT["text"] = "QUIT"
+# 		self.QUIT["fg"]   = "red"
+# 		self.QUIT["command"] =  self.quit
+
+# 		self.QUIT.pack({"side": "left"})
+
+# 		self.hi_there = Button(self)
+# 		self.hi_there["text"] = "Hello",
+# 		self.hi_there["command"] = self.say_hi
+
+# 		self.hi_there.pack({"side": "left"})
+
 def main():
 	csvfilepath = '../data/Tweets.csv'
 	data = Data(csvfilepath)
+	# app = Application(master=Tk())
 
 if __name__ == "__main__":
 	main()
